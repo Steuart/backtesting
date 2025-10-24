@@ -75,3 +75,64 @@ python main.py
 - 这只是一个演示程序，实际交易前请充分测试和验证策略
 - 历史回测结果不代表未来表现
 - 请根据自己的风险承受能力调整策略参数
+
+---
+
+## 接入 TimescaleDB 基金数据（fund_market）
+
+项目提供 `datafeed/TimescaleFundData`，使用 psycopg2 直接读取 TimescaleDB 的 `trader` 库中 `fund_market` 表，并适配为 Backtrader 的数据源。
+
+### 连接与使用示例
+
+```python
+import backtrader as bt
+from datafeed import TimescaleFundData
+from main import SimpleMovingAverageStrategy  # 或者你自己的策略
+
+# 创建引擎
+cerebro = bt.Cerebro()
+
+# 加载基金数据（示例基金代码与时间范围）
+data = TimescaleFundData(
+    conn_str='postgresql://user:pass@host:5432/trader',
+    fund_code='110022',
+    start='2023-01-01',
+    end='2023-12-31'
+)
+
+# 添加数据与策略
+cerebro.adddata(data)
+cerebro.addstrategy(SimpleMovingAverageStrategy)
+
+# 基本回测设置
+cerebro.broker.setcash(10000.0)
+cerebro.broker.setcommission(commission=0.001)
+
+# 运行
+cerebro.run()
+```
+
+### 列名映射与自动推断
+
+- 默认会自动从 `fund_market` 表中推断以下关键列（若存在）：
+  - 时间列：`time` / `timestamp` / `ts` / `date` / `dt`
+  - 收盘价/净值：`close` / `price` / `nav` / `last`
+  - 代码列：`fund_code` / `code` / `symbol`
+  - 其他可选：`open`、`high`、`low`、`volume`
+- 若你的表结构不同，可显式指定列名，例如：
+
+```python
+# 显式指定时间与价格列名（例如时间列为 ts，净值列为 nav）
+data = TimescaleFundData(
+    conn_str='postgresql://user:pass@host:5432/trader',
+    fund_code='110022',
+    start='2023-01-01',
+    end='2023-12-31',
+    time_col='ts',
+    close_col='nav'
+)
+```
+
+### 数据缺失处理
+
+- 若仅有单价（如净值），会自动将 `Open/High/Low` 填充为 `Close`，`Volume` 填充为 0，以满足 Backtrader 的 OHLCV 结构要求。
