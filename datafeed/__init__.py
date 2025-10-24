@@ -1,1 +1,0 @@
-from .fund_datafeed import TimescaleFundData
