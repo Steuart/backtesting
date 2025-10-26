@@ -1,129 +1,11 @@
 import backtrader as bt
 import datetime
 import pandas as pd
+import numpy as np
 
-
-class SimpleMovingAverageStrategy(bt.Strategy):
-    """
-    简单移动平均线交叉策略
-    当短期均线上穿长期均线时买入
-    当短期均线下穿长期均线时卖出
-    """
-    
-    params = (
-        ('short_period', 10),  # 短期移动平均线周期
-        ('long_period', 30),   # 长期移动平均线周期
-        ('printlog', True),    # 是否打印交易日志
-    )
-    
-    def __init__(self):
-        # 计算移动平均线
-        self.short_ma = bt.indicators.SimpleMovingAverage(
-            self.data.close, period=self.params.short_period
-        )
-        self.long_ma = bt.indicators.SimpleMovingAverage(
-            self.data.close, period=self.params.long_period
-        )
-        
-        # 计算交叉信号
-        self.crossover = bt.indicators.CrossOver(self.short_ma, self.long_ma)
-        
-        # 记录订单状态
-        self.order = None
-        
-    def log(self, txt, dt=None):
-        """日志记录函数"""
-        if self.params.printlog:
-            dt = dt or self.datas[0].datetime.date(0)
-            print(f'{dt.isoformat()}: {txt}')
-    
-    def notify_order(self, order):
-        """订单状态通知"""
-        if order.status in [order.Submitted, order.Accepted]:
-            return
-        
-        if order.status in [order.Completed]:
-            if order.isbuy():
-                self.log(f'买入执行: 价格 {order.executed.price:.2f}, '
-                        f'数量 {order.executed.size}, '
-                        f'手续费 {order.executed.comm:.2f}')
-            elif order.issell():
-                self.log(f'卖出执行: 价格 {order.executed.price:.2f}, '
-                        f'数量 {order.executed.size}, '
-                        f'手续费 {order.executed.comm:.2f}')
-        
-        elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-            self.log('订单取消/保证金不足/拒绝')
-        
-        self.order = None
-    
-    def notify_trade(self, trade):
-        """交易通知"""
-        if not trade.isclosed:
-            return
-        
-        self.log(f'交易盈亏: 毛利润 {trade.pnl:.2f}, 净利润 {trade.pnlcomm:.2f}')
-    
-    def next(self):
-        """策略主逻辑"""
-        # 如果有未完成的订单，等待
-        if self.order:
-            return
-        
-        # 检查是否持仓
-        if not self.position:
-            # 没有持仓，检查买入信号
-            if self.crossover[0] > 0:  # 短期均线上穿长期均线
-                self.log(f'买入信号: 价格 {self.data.close[0]:.2f}')
-                # 买入
-                self.order = self.buy()
-        
-        else:
-            # 有持仓，检查卖出信号
-            if self.crossover[0] < 0:  # 短期均线下穿长期均线
-                self.log(f'卖出信号: 价格 {self.data.close[0]:.2f}')
-                # 卖出
-                self.order = self.sell()
-
-
-def create_sample_data():
-    """创建示例数据"""
-    # 生成示例价格数据
-    dates = pd.date_range('2023-01-01', '2023-12-31', freq='D')
-    
-    # 模拟股价走势
-    import numpy as np
-    np.random.seed(42)
-    
-    # 基础价格趋势
-    base_price = 100
-    trend = np.linspace(0, 20, len(dates))  # 上升趋势
-    noise = np.random.normal(0, 2, len(dates))  # 随机噪声
-    
-    prices = base_price + trend + noise
-    
-    # 生成OHLC数据
-    data = []
-    for i, (date, price) in enumerate(zip(dates, prices)):
-        high = price + abs(np.random.normal(0, 1))
-        low = price - abs(np.random.normal(0, 1))
-        open_price = prices[i-1] if i > 0 else price
-        close_price = price
-        volume = np.random.randint(1000, 10000)
-        
-        data.append({
-            'Date': date,
-            'Open': open_price,
-            'High': max(open_price, high, close_price),
-            'Low': min(open_price, low, close_price),
-            'Close': close_price,
-            'Volume': volume
-        })
-    
-    df = pd.DataFrame(data)
-    df.set_index('Date', inplace=True)
-    return df
-
+# 导入策略和数据源
+from strategy import SimpleMovingAverageStrategy
+from feeddata.fund_feeddata import FundDataFeed
 
 def run_backtest():
     """运行回测"""
@@ -135,13 +17,26 @@ def run_backtest():
     # 添加策略
     cerebro.addstrategy(SimpleMovingAverageStrategy)
     
-    # 创建示例数据
-    df = create_sample_data()
-    # 将数据转换为Backtrader格式
-    data = bt.feeds.PandasData(dataname=df)
-    
-    # 添加数据到Cerebro
-    cerebro.adddata(data)
+    # 使用FundDataFeed作为数据源
+    # 注意：这里需要根据实际情况配置数据库连接参数
+    try:
+        # 创建基金数据源
+        data = FundDataFeed(
+            symbol='513580.SH',  # 示例基金代码
+            start='2023-01-01',
+            end='2023-12-31',
+            time_frame='1d'  # 日线数据
+        )
+        
+        # 添加数据到Cerebro
+        cerebro.adddata(data)
+        
+    except Exception as e:
+        print(f"无法连接到数据库，使用示例数据: {e}")
+        # 如果数据库连接失败，回退到示例数据
+        df = create_sample_data()
+        data = bt.feeds.PandasData(dataname=df)
+        cerebro.adddata(data)
     
     # 设置初始资金
     cerebro.broker.setcash(10000.0)

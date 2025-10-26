@@ -1,1 +1,3 @@
-from .fund_feeddata import TimescaleFundData
+from .fund_feeddata import FundDataFeed
+
+__all__ = ['FundDataFeed']

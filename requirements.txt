@@ -1,6 +1,5 @@
 backtrader>=1.9.76.123
 pandas>=2.0.0
-psycopg2-binary>=2.9.9
 numpy>=1.21.0
 matplotlib>=3.5.0
-yfinance>=0.1.70
+psycopg2-binary>=2.9.9
