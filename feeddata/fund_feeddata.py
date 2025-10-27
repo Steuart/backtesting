@@ -5,7 +5,6 @@ import config
 import psycopg2
 
 class FundDataFeed(bt.feed.DataBase):
-    lines = ('open', 'high', 'low', 'close', 'volume', 'openinterest')
     params = (
         ('symbol', None),
         ('start', None),
