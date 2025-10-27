@@ -1,7 +1,7 @@
 import backtrader as bt
 import pandas as pd
 from typing import Optional, Dict, Any
-import config
+from common import config
 import psycopg2
 
 class FundDataFeed(bt.feed.DataBase):

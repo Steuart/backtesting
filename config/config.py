@@ -1,1 +1,0 @@
-trader_conn_str = 'postgresql://root:hy123!!!@localhost:5432/trader'

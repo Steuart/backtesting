@@ -1,14 +1,10 @@
 import psycopg2
-from psycopg2 import sql
+from common import config
+
+
 
 # 连接数据库
-conn = psycopg2.connect(
-    dbname="trader",
-    user="root",
-    password="hy123!!!",
-    host="localhost",
-    port="5432"
-)
+conn = psycopg2.connect(config.trader_conn_str)
 
 # 创建游标
 cur = conn.cursor()

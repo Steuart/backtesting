@@ -1,5 +1,5 @@
 import psycopg2
-from config import config
+from common import config
 from typing import List
 
 
