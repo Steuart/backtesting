@@ -1,1 +1,1 @@
-trader_conn_str = 'postgresql://root:wuhaiming!!!@192.168.3.8:5432/trader'
+trader_conn_str = 'postgresql://root:hy123!!!@localhost:5432/trader'
