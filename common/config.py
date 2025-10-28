@@ -1,1 +1,4 @@
-trader_conn_str = 'postgresql://root:hy123!!!@localhost:5432/trader'
+from dotenv import load_dotenv
+import os
+load_dotenv()
+trader_conn_str = os.getenv('DB')
