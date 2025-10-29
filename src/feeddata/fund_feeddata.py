@@ -54,7 +54,7 @@ class FundDataFeed(bt.feed.DataBase):
     
     def query_data(self):
         """查询数据库数据"""
-        conn = psycopg2.connect(config.trader_conn_str)
+        conn = psycopg2.connect(config.DB_URL)
         cursor = conn.cursor()
         sql = """
         SELECT

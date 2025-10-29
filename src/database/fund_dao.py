@@ -4,7 +4,7 @@ from typing import List
 
 
 def list_fund_codes() -> List[str]:
-    conn = psycopg2.connect(config.trader_conn_str)
+    conn = psycopg2.connect(config.DB_URL)
     cursor = conn.cursor()
     sql = """
     SELECT DISTINCT symbol FROM fund_market

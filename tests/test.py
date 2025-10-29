@@ -4,7 +4,7 @@ from common import config
 
 
 # 连接数据库
-conn = psycopg2.connect(config.trader_conn_str)
+conn = psycopg2.connect(config.DB_URL)
 
 # 创建游标
 cur = conn.cursor()
