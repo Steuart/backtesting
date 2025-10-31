@@ -85,6 +85,7 @@ class FundDataFeed(bt.feed.DataBase):
         result = deque()
         for _, row in fund_markets.iterrows():
             result.append(row)
+        print(f"load {len(result)} rows for {self.p.symbol}")
         return result
 
         

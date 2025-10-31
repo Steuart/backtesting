@@ -67,18 +67,20 @@ class SimpleMovingAverageStrategy(bt.Strategy):
         # 如果有未完成的订单，等待
         if self.order:
             return
-        
+
         # 检查是否持仓
         if not self.position:
             # 没有持仓，检查买入信号
             if self.crossover[0] > 0:  # 短期均线上穿长期均线
                 self.log(f'买入信号: 价格 {self.data.close[0]:.2f}')
-                # 买入
-                self.order = self.buy()
-        
+                # 计算买入数量，使用98%的现金以避免保证金不足
+                size = int(self.broker.getcash() * 0.98 / self.data.close[0])
+                if size > 0:
+                    self.order = self.buy(size=size)
+
         else:
             # 有持仓，检查卖出信号
             if self.crossover[0] < 0:  # 短期均线下穿长期均线
                 self.log(f'卖出信号: 价格 {self.data.close[0]:.2f}')
-                # 卖出
+                # 卖出所有持仓
                 self.order = self.sell()

@@ -1,11 +1,9 @@
 import backtrader as bt
-import datetime
-import pandas as pd
-import numpy as np
 from feeddata.fund_feeddata import FundDataFeed
+from database import fund_dao
 
 # 导入策略和数据源
-from strategy import SimpleMovingAverageStrategy
+from strategy.relative_strength_strategy import RelativeStrengthStrategy    
 
 def run_backtest():
     """运行回测"""
@@ -13,20 +11,22 @@ def run_backtest():
     
     # 创建Cerebro引擎
     cerebro = bt.Cerebro()
-    data = FundDataFeed(
-            symbol='513300.SH',  # 示例基金代码
-            start='2025-05-01',
-            end='2025-12-31',
-            time_frame='1d'  # 日线数据
-        )
-        
-    # 添加数据到Cerebro
-    cerebro.adddata(data)
+    funds = fund_dao.list_fund()
+    for index,fund in funds.iterrows():
+        data = FundDataFeed(
+                symbol=fund['symbol'],  # 示例基金代码
+                start='2023-05-01',
+                end='2025-12-31',
+                time_frame='1d'  # 日线数据
+            )
+        print("load data "+fund['symbol'])
+        # 添加数据到Cerebro
+        cerebro.adddata(data)
     # 添加策略
-    cerebro.addstrategy(SimpleMovingAverageStrategy)
+    cerebro.addstrategy(RelativeStrengthStrategy)
     
     # 设置初始资金
-    cerebro.broker.setcash(10000.0)
+    cerebro.broker.setcash(100000.0)
     
     # 设置手续费
     cerebro.broker.setcommission(commission=0.001)  # 0.1%手续费
