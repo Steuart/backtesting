@@ -2,7 +2,7 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 from common import config
 
-def list_fund_market(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
+def list_fund_adj(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
     db_url = config.DB_URL
     query = """
         SELECT * FROM fund_adj
@@ -22,12 +22,14 @@ def list_fund_market(symbol: str, start_date: str, end_date: str) -> pd.DataFram
 def get_latest_adj(symbol: str) -> float:
     db_url = config.DB_URL
     query = """
-        SELECT fund_adj FROM fund_adj
+        SELECT adj_factor FROM fund_adj
         WHERE symbol = :symbol
-        ORDER BY date DESC
+        ORDER BY time ASC
         LIMIT 1
     """
     engine = create_engine(db_url)
     params = {'symbol': symbol}
     df = pd.read_sql(text(query), engine, params=params)
-    return df.iloc[0]
+    if df.empty:
+        return 1.0
+    return float(df['adj_factor'].iloc[0])

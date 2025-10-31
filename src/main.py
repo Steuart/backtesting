@@ -5,7 +5,7 @@ import numpy as np
 
 # 导入策略和数据源
 from strategy import SimpleMovingAverageStrategy
-from feeddata.fund_feeddata import FundDataFeed
+from feeddata.fund_feeddata import create_fund_dataframe
 
 def run_backtest():
     """运行回测"""
@@ -20,15 +20,15 @@ def run_backtest():
     # 使用FundDataFeed作为数据源
     # 注意：这里需要根据实际情况配置数据库连接参数
     try:
-        # 创建基金数据源
-        data = FundDataFeed(
-            symbol='513580.SH',  # 示例基金代码
-            start='2023-01-01',
-            end='2023-12-31',
-            time_frame='1d'  # 日线数据
+        # 创建基金数据源 DataFrame 并使用 PandasData
+        df = create_fund_dataframe(
+            symbol='508092.SH',
+            start='2025-01-01',
+            end='2025-12-31',
+            time_frame='1d',
+            adjust_type='forward',
         )
-        
-        # 添加数据到Cerebro
+        data = bt.feeds.PandasData(dataname=df)
         cerebro.adddata(data)
         
     except Exception as e:
@@ -65,13 +65,13 @@ def run_backtest():
     print(f'最大回撤: {strat.analyzers.drawdown.get_analysis().get("max", {}).get("drawdown", 0):.2%}')
     
     # 绘制结果图表
-    try:
-        print('\n正在生成图表...')
-        cerebro.plot(style='candlestick', barup='green', bardown='red')
-        print('图表已生成！')
-    except Exception as e:
-        print(f'图表生成失败: {e}')
-        print('可能需要安装matplotlib: pip install matplotlib')
+    # try:
+    #     print('\n正在生成图表...')
+    #     cerebro.plot(style='candlestick', barup='green', bardown='red')
+    #     print('图表已生成！')
+    # except Exception as e:
+    #     print(f'图表生成失败: {e}')
+    #     print('可能需要安装matplotlib: pip install matplotlib')
 
 
 if __name__ == '__main__':

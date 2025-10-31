@@ -6,4 +6,5 @@ data = fund_market_dao.list_fund_market(
     end_date='2025-10-31',
     time_frame='1d'
 )
-print(data)
+for index, row in data.iterrows():
+    print(row['time'])

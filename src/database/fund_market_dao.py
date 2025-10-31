@@ -10,6 +10,7 @@ def list_fund_market(symbol: str, start_date: str, end_date: str, time_frame: st
         AND time >= :start_date
         AND time <= :end_date
         AND time_frame = :time_frame
+        ORDER BY time ASC
     """
     engine = create_engine(db_url)
     params = {

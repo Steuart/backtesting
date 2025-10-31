@@ -10,14 +10,13 @@ class FundDataFeed(bt.feed.DataBase):
         ('symbol', None),
         ('start', None),
         ('end', None),
-        ('time_frame', None)
+        ('time_frame', None),
         ('adjust_type', None) # 调整类型，None 表示不调整，'forward' 表示前向调整，'backward' 表示后向调整
     )
 
     def __init__(self, **kwargs):
         super().__init__()
-        self._rows: deque[Dict[str, Any]] = []
-        self._idx: int = 0
+        self._rows: deque[pd.Series] = []
         self._resolved_cols: Dict[str, Optional[str]] = {}
         self.latest_adj: Optional[float] = None
 
@@ -31,30 +30,26 @@ class FundDataFeed(bt.feed.DataBase):
         self._rows = self.query_data()
 
         # 获取最新调整因子
-        self.latest_adj = fund_adj_dao.get_latest_adj(self.p.symbol)
+        # self.latest_adj = fund_adj_dao.get_latest_adj(self.p.symbol)
+        self.latest_adj = 1.0
 
     def _load(self):
-        """
-        Backtrader 数据加载回调：每次调用推进一根bar。
-        返回 True 表示成功加载一条；返回 False 表示数据结束。
-        """
-        if self._idx >= len(self._rows):
+        if not self._rows:
             return False
 
-        row = self._rows[self._idx]
+        index, row = self._rows.popleft()
 
-        dt = pd.to_datetime(row[0]).to_pydatetime()
+        dt = pd.to_datetime(index).to_pydatetime()
         # 设置 datetime（必须是数值形式）
         self.lines.datetime[0] = bt.date2num(dt)
 
         # 设置 OHLCV
-        self.lines.open[0] = float(row[2])
-        self.lines.high[0] = float(row[3])
-        self.lines.low[0] = float(row[4])
-        self.lines.close[0] = float(row[5])
-        self.lines.volume[0] = float(row[9])
+        self.lines.open[0] = float(row['open'])
+        self.lines.high[0] = float(row['high'])
+        self.lines.low[0] = float(row['low'])
+        self.lines.close[0] = float(row['close'])
+        self.lines.volume[0] = float(row['vol'])
         self.lines.openinterest[0] = 0.0
-        self._idx += 1
         return True
     
     def query_data(self):
@@ -64,6 +59,32 @@ class FundDataFeed(bt.feed.DataBase):
             end_date=self.p.end,
             time_frame=self.p.time_frame
         )
+        # fund_adjs = fund_adj_dao.list_fund_adj(
+        #     symbol=self.p.symbol,
+        #     start_date=self.p.start,
+        #     end_date=self.p.end
+        # )
+        
+        # fund_adj_map = fund_adjs.set_index('time')['adj_factor'].to_dict()
+        # 保证按时间排序并以时间为索引
+        fund_markets = fund_markets.sort_values('time').set_index('time')
+        fund_adj_map = {}
+        if self.p.adjust_type == 'forward':
+            latest_adj = self.latest_adj if self.latest_adj is not None else 1.0
+            adj_series = pd.Series(index=fund_markets.index, data=[fund_adj_map.get(ts) for ts in fund_markets.index]).ffill()
+            factor = adj_series.fillna(latest_adj) / latest_adj
+            fund_markets['open'] = fund_markets['open'] * factor
+            fund_markets['high'] = fund_markets['high'] * factor
+            fund_markets['low'] = fund_markets['low'] * factor
+            fund_markets['close'] = fund_markets['close'] * factor
+        elif self.p.adjust_type == 'backward':
+            adj_series = pd.Series(index=fund_markets.index, data=[fund_adj_map.get(ts) for ts in fund_markets.index]).bfill()
+            factor = adj_series.fillna(1.0)
+            fund_markets['open'] = fund_markets['open'] * factor
+            fund_markets['high'] = fund_markets['high'] * factor
+            fund_markets['low'] = fund_markets['low'] * factor
+            fund_markets['close'] = fund_markets['close'] * factor
+        self._rows = deque(fund_markets.iterrows())
 
 
         
