@@ -65,13 +65,13 @@ def run_backtest():
     print(f'最大回撤: {strat.analyzers.drawdown.get_analysis().get("max", {}).get("drawdown", 0):.2%}')
     
     # 绘制结果图表
-    # try:
-    #     print('\n正在生成图表...')
-    #     cerebro.plot(style='candlestick', barup='green', bardown='red')
-    #     print('图表已生成！')
-    # except Exception as e:
-    #     print(f'图表生成失败: {e}')
-    #     print('可能需要安装matplotlib: pip install matplotlib')
+    try:
+        print('\n正在生成图表...')
+        cerebro.plot(style='candlestick', barup='red', bardown='gray')
+        print('图表已生成！')
+    except Exception as e:
+        print(f'图表生成失败: {e}')
+        print('可能需要安装matplotlib: pip install matplotlib')
 
 
 if __name__ == '__main__':
