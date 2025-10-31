@@ -2,10 +2,10 @@ import backtrader as bt
 import datetime
 import pandas as pd
 import numpy as np
+from feeddata.fund_feeddata import FundDataFeed
 
 # 导入策略和数据源
 from strategy import SimpleMovingAverageStrategy
-from feeddata.fund_feeddata import create_fund_dataframe
 
 def run_backtest():
     """运行回测"""
@@ -13,30 +13,17 @@ def run_backtest():
     
     # 创建Cerebro引擎
     cerebro = bt.Cerebro()
-    
+    data = FundDataFeed(
+            symbol='513300.SH',  # 示例基金代码
+            start='2025-05-01',
+            end='2025-12-31',
+            time_frame='1d'  # 日线数据
+        )
+        
+    # 添加数据到Cerebro
+    cerebro.adddata(data)
     # 添加策略
     cerebro.addstrategy(SimpleMovingAverageStrategy)
-    
-    # 使用FundDataFeed作为数据源
-    # 注意：这里需要根据实际情况配置数据库连接参数
-    try:
-        # 创建基金数据源 DataFrame 并使用 PandasData
-        df = create_fund_dataframe(
-            symbol='508092.SH',
-            start='2025-01-01',
-            end='2025-12-31',
-            time_frame='1d',
-            adjust_type='forward',
-        )
-        data = bt.feeds.PandasData(dataname=df)
-        cerebro.adddata(data)
-        
-    except Exception as e:
-        print(f"无法连接到数据库，使用示例数据: {e}")
-        # 如果数据库连接失败，回退到示例数据
-        df = create_sample_data()
-        data = bt.feeds.PandasData(dataname=df)
-        cerebro.adddata(data)
     
     # 设置初始资金
     cerebro.broker.setcash(10000.0)

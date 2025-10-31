@@ -37,11 +37,9 @@ class FundDataFeed(bt.feed.DataBase):
         if not self._rows:
             return False
 
-        index, row = self._rows.popleft()
-
-        dt = pd.to_datetime(index).to_pydatetime()
+        row = self._rows.popleft()
         # 设置 datetime（必须是数值形式）
-        self.lines.datetime[0] = bt.date2num(dt)
+        self.lines.datetime[0] = bt.date2num(row.name)
 
         # 设置 OHLCV
         self.lines.open[0] = float(row['open'])
@@ -52,7 +50,7 @@ class FundDataFeed(bt.feed.DataBase):
         self.lines.openinterest[0] = 0.0
         return True
     
-    def query_data(self):
+    def query_data(self) -> deque[pd.Series]:
         fund_markets = fund_market_dao.list_fund_market(
             symbol=self.p.symbol,
             start_date=self.p.start,
@@ -84,7 +82,9 @@ class FundDataFeed(bt.feed.DataBase):
             fund_markets['high'] = fund_markets['high'] * factor
             fund_markets['low'] = fund_markets['low'] * factor
             fund_markets['close'] = fund_markets['close'] * factor
-        self._rows = deque(fund_markets.iterrows())
-
+        result = deque()
+        for _, row in fund_markets.iterrows():
+            result.append(row)
+        return result
 
         
