@@ -1,8 +1,9 @@
+from collections import deque
 import backtrader as bt
 import pandas as pd
 from typing import Optional, Dict, Any
-from common import config
-import psycopg2
+from database import fund_adj_dao
+from database import fund_market_dao
 
 class FundDataFeed(bt.feed.DataBase):
     params = (
@@ -10,23 +11,27 @@ class FundDataFeed(bt.feed.DataBase):
         ('start', None),
         ('end', None),
         ('time_frame', None)
+        ('adjust_type', None) # 调整类型，None 表示不调整，'forward' 表示前向调整，'backward' 表示后向调整
     )
 
     def __init__(self, **kwargs):
         super().__init__()
-        # Backtrader 会把外部传入的参数绑定到 self.p 中，这里无需处理
-        self._rows: list[Dict[str, Any]] = []
+        self._rows: deque[Dict[str, Any]] = []
         self._idx: int = 0
         self._resolved_cols: Dict[str, Optional[str]] = {}
+        self.latest_adj: Optional[float] = None
 
     def start(self):
         super().start()
         # 检查参数
         if not self.p.symbol or not self.p.start or not self.p.end or not self.p.time_frame:
             raise ValueError("symbol, start, end, and time_frame are required parameters")
-
+        
         # 查询数据
         self._rows = self.query_data()
+
+        # 获取最新调整因子
+        self.latest_adj = fund_adj_dao.get_latest_adj(self.p.symbol)
 
     def _load(self):
         """
@@ -53,33 +58,12 @@ class FundDataFeed(bt.feed.DataBase):
         return True
     
     def query_data(self):
-        """查询数据库数据"""
-        conn = psycopg2.connect(config.DB_URL)
-        cursor = conn.cursor()
-        sql = """
-        SELECT
-            time,
-            symbol,
-            open,
-            high,
-            low,
-            close,
-            pre_close,
-            change,
-            pct_chg,
-            vol,
-            amount
-        FROM
-            fund_market
-        WHERE
-            symbol = %s
-            AND time_frame = %s
-            AND time >= %s
-            AND time <= %s
-        ORDER BY
-            time ASC
-        """
-        cursor.execute(sql, (self.p.symbol, self.p.time_frame, self.p.start, self.p.end))
-        rows = cursor.fetchall()
-        conn.close()
-        return rows
+        fund_markets = fund_market_dao.list_fund_market(
+            symbol=self.p.symbol,
+            start_date=self.p.start,
+            end_date=self.p.end,
+            time_frame=self.p.time_frame
+        )
+
+
+        

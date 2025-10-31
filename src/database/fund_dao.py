@@ -1,22 +1,19 @@
-import psycopg2
+import pandas as pd
+from sqlalchemy import create_engine,text
 from common import config
-from typing import List
 
-
-def list_fund_codes() -> List[str]:
-    conn = psycopg2.connect(config.DB_URL)
-    cursor = conn.cursor()
-    sql = """
-    SELECT DISTINCT symbol FROM fund_market
+def list_fund(start_date: str, end_date: str) -> pd.DataFrame:
+    db_url = config.DB_URL
+    query = """
+        SELECT * FROM fund
+        WHERE focus_on = 1
+        AND time >= :start_date
+        AND time <= :end_date
     """
-    cursor.execute(sql)
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return [row[0] for row in rows]
-
-
-if __name__ == '__main__':
-    fund_codes = list_fund_codes()
-    for fund_code in fund_codes:
-        print(fund_code)
+    engine = create_engine(db_url)
+    params = {
+        'start_date': start_date,
+        'end_date': end_date
+    }
+    df = pd.read_sql(text(query), engine, params=params)
+    return df
