@@ -25,7 +25,8 @@ class RelativeStrengthStrategy(bt.Strategy):
         """获取所有数据中可用的调仓日期"""
         dates = set()
         for data in self.stocks:
-            dates.update([bt.num2date(line.datetime[0]) for line in data.lines.datetime.array])
+            for line in data.lines.datetime.array:
+                dates.add(bt.num2date(line))
         
         sorted_dates = sorted(list(dates))
         

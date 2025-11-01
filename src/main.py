@@ -1,5 +1,5 @@
 import backtrader as bt
-from feeddata.fund_feeddata import FundDataFeed
+from feeddata import fund_feeddata
 from database import fund_dao
 
 # 导入策略和数据源
@@ -11,17 +11,16 @@ def run_backtest():
     
     # 创建Cerebro引擎
     cerebro = bt.Cerebro()
-    funds = fund_dao.list_fund()
+    funds = fund_dao.list_fund(500)
     for index,fund in funds.iterrows():
-        data = FundDataFeed(
+        data = fund_feeddata.load_data(
                 symbol=fund['symbol'],  # 示例基金代码
                 start='2023-05-01',
                 end='2025-12-31',
                 time_frame='1d'  # 日线数据
             )
-        print("load data "+fund['symbol'])
         # 添加数据到Cerebro
-        cerebro.adddata(data)
+        cerebro.adddata(data = bt.feeds.PandasData(dataname=data), name=fund['symbol'])
     # 添加策略
     cerebro.addstrategy(RelativeStrengthStrategy)
     
@@ -52,13 +51,13 @@ def run_backtest():
     print(f'最大回撤: {strat.analyzers.drawdown.get_analysis().get("max", {}).get("drawdown", 0):.2%}')
     
     # 绘制结果图表
-    try:
-        print('\n正在生成图表...')
-        cerebro.plot(style='candlestick', barup='red', bardown='gray')
-        print('图表已生成！')
-    except Exception as e:
-        print(f'图表生成失败: {e}')
-        print('可能需要安装matplotlib: pip install matplotlib')
+    # try:
+    #     print('\n正在生成图表...')
+    #     cerebro.plot(style='candlestick', barup='red', bardown='gray')
+    #     print('图表已生成！')
+    # except Exception as e:
+    #     print(f'图表生成失败: {e}')
+    #     print('可能需要安装matplotlib: pip install matplotlib')
 
 
 if __name__ == '__main__':
