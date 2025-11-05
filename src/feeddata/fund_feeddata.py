@@ -31,5 +31,4 @@ def load_data(symbol: str, start: str, end: str, time_frame: str, adjust_type: s
     fund_markets['high'] = fund_markets['high'] * factor
     fund_markets['low'] = fund_markets['low'] * factor
     fund_markets['close'] = fund_markets['close'] * factor
-    print(f"load {len(fund_markets)} rows for {symbol}")
     return fund_markets
