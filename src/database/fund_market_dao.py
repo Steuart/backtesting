@@ -1,9 +1,9 @@
 import pandas as pd
 from sqlalchemy import create_engine, text
-from common import config
+from database.db_pool import get_engine
 
 def list_fund_market(symbol: str, start_date: str, end_date: str, time_frame: str = '1d') -> pd.DataFrame:
-    db_url = config.DB_URL
+    engine = get_engine()
     query = """
         SELECT * FROM fund_market
         WHERE symbol = :symbol
@@ -12,7 +12,6 @@ def list_fund_market(symbol: str, start_date: str, end_date: str, time_frame: st
         AND time_frame = :time_frame
         ORDER BY time ASC
     """
-    engine = create_engine(db_url)
     params = {
         'symbol': symbol,
         'start_date': start_date,
