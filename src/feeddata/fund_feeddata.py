@@ -11,13 +11,13 @@ def load_data(symbol: str, start: str, end: str, time_frame: str, adjust_type: s
         end_date=end,
         time_frame=time_frame
     )
-    # fund_adjs = fund_adj_dao.list_fund_adj(
-    #     symbol=symbol,
-    #     start_date=start,
-    #     end_date=end
-    # )
+    fund_adjs = fund_adj_dao.list_fund_adj(
+        symbol=symbol,
+        start_date=start,
+        end_date=end
+    )
     latest_adj = 1.0
-    # fund_adj_map = fund_adjs.set_index('time')['adj_factor'].to_dict()
+    fund_adj_map = fund_adjs.set_index('time')['adj_factor'].to_dict()
     # 保证按时间排序并以时间为索引
     fund_markets = fund_markets.sort_values('time').set_index('time')
     fund_adj_map = {}
