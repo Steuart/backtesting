@@ -9,7 +9,7 @@ from commission.fund_commission import FundCommission
 # 导入策略和数据源
 from strategy.relative_strength_strategy import RelativeStrengthStrategy    
 
-def run_backtest():    
+def run_backtest():
     # 创建Cerebro引擎
     cerebro = bt.Cerebro()
     funds = fund_dao.list_fund(1000)
