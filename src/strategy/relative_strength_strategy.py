@@ -1,4 +1,3 @@
-import json
 import backtrader as bt
 import numpy as np
 
@@ -8,6 +7,8 @@ class RelativeStrengthStrategy(bt.Strategy):
         ('rebalance_period', 10),
         ('num_top', 5),
         ('lookback_days', 60),
+        ('vol_threshold', 2.0),
+        ('corr_threshold', 0.8),
         ('printlog', True),
     )
 
@@ -85,7 +86,7 @@ class RelativeStrengthStrategy(bt.Strategy):
                 continue
                 
             vol = float(np.std(rets))
-            if vol <= 2.0:
+            if vol <= self.p.vol_threshold:
                 # Calculate total return using close prices
                 start_close = d.close[-self.p.lookback_days + 1]
                 end_close = d.close[0]
@@ -102,7 +103,7 @@ class RelativeStrengthStrategy(bt.Strategy):
         adj = {names[i]: set() for i in range(n)}
         for i in range(n):
             for j in range(i+1, n):
-                if corr[i, j] > 0.8:
+                if corr[i, j] > self.p.corr_threshold:
                     adj[names[i]].add(names[j])
                     adj[names[j]].add(names[i])
         visited = set()
