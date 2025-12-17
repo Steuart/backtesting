@@ -4,6 +4,12 @@ import pandas as pd
 from database import fund_adj_dao
 from database import fund_market_dao
 
+class FundPandasData(bt.feeds.PandasData):
+    lines = ('pct_chg',)
+    params = (
+        ('pct_chg', 'pct_chg'),
+    )
+
 def load_data(symbol: str, start: str, end: str, time_frame: str, adjust_type: str = 'forward') -> pd.DataFrame:
     fund_markets = fund_market_dao.list_fund_market(
         symbol=symbol,

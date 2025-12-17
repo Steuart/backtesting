@@ -26,7 +26,7 @@ def run_backtest():
             continue
         # 添加数据到Cerebro
         print(f"load {rows} rows for {code}")
-        cerebro.adddata(data = bt.feeds.PandasData(dataname=data), name=code)
+        cerebro.adddata(data = fund_feeddata.FundPandasData(dataname=data), name=code)
     cerebro.addstrategy(RelativeStrengthStrategy)
     
     cerebro.broker.setcash(100000.0)
