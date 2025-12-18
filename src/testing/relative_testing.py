@@ -15,19 +15,14 @@ def run_backtest():
     
     for _,fund in funds.iterrows():
         code = fund['symbol']
-        data = fund_feeddata.load_data(
-                symbol=code,
-                end=end.strftime('%Y-%m-%d'),
-                bars=bars,
-                time_frame='1d'
-            )
-        rows = len(data)
+        data = fund_feeddata.FundPandasData(name = code)
+        data.load_data(symbol=code, end=end.strftime('%Y-%m-%d'), bars=bars, time_frame='1d')
+        rows = data.datalength
         if (rows<bars):
             continue
         print(f"load {rows} rows for {code}")
-        cerebro.adddata(data = fund_feeddata.FundPandasData(dataname=data), name=code)
+        cerebro.adddata(data = data, name=code)
     cerebro.addstrategy(RelativeStrengthStrategy)
-    
     cerebro.broker.setcash(cash)
     cerebro.broker.set_checksubmit(True)
     cerebro.broker.set_shortcash(False)
