@@ -43,7 +43,7 @@ class RelativeStrengthStrategy(bt.Strategy):
     def firstbuy(self):
         self.top_stocks = self.select_candidates()
         budget = self.broker.get_cash()/len(self.top_stocks)*0.9
-        self.log(f"首次购买，总预算：{self.broker.get_cash()}, 平均预算: {budget}")
+        self.log(f"first buy, budget:{self.broker.get_cash()}, avg budget: {budget}")
         for stock in self.top_stocks:
             size = int(budget / stock.close[0])
             if size > 0:
@@ -58,7 +58,7 @@ class RelativeStrengthStrategy(bt.Strategy):
             tmp_stocks = self.stocks
             for stock in self.stocks:
                 if self.getposition(stock).size > 0 and stock not in self.top_stocks:
-                    self.log(f'卖出信号: {stock._name}')
+                    self.log(f'sell signal: {stock._name}')
                     self.ordering_num +=1
                     self.close(data=stock)
                     tmp_stocks.remove(stock)
@@ -144,16 +144,16 @@ class RelativeStrengthStrategy(bt.Strategy):
 
         if order.status in [order.Completed]:
             if order.isbuy():
-                self.log(f'购买: {order.data._name}, 价格 {order.executed.price:.2f}, '
-                         f'数量 {order.executed.size}, 手续费 {order.executed.comm:.2f}')
+                self.log(f'buy: {order.data._name}, price {order.executed.price:.2f}, '
+                         f'size {order.executed.size}, comm {order.executed.comm:.2f}')
             elif order.issell():
-                self.log(f'卖出: {order.data._name}, 价格 {order.executed.price:.2f}, '
-                         f'数量 {order.executed.size}, 手续费 {order.executed.comm:.2f}')
+                self.log(f'sell: {order.data._name}, price {order.executed.price:.2f}, '
+                         f'size {order.executed.size}, comm {order.executed.comm:.2f}')
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-            self.log(f'订单问题: {order.p.data._name}, isBuy:{order.isbuy()}')
+            self.log(f'order problem: {order.p.data._name}, isBuy:{order.isbuy()}')
         self.ordering_num -= 1
 
     def notify_trade(self, trade):
         if not trade.isclosed:
             return
-        self.log(f'交易利润: 毛利润 {trade.pnl:.2f}, 净利润 {trade.pnlcomm:.2f}')
+        self.log(f'trade profit: gross {trade.pnl:.2f}, net {trade.pnlcomm:.2f}')

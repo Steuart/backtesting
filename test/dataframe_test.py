@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 from sqlalchemy import text
 from database import db_pool
-
+def date():
+    print(pd.Timestamp.now())
 
 def main():
     engine = db_pool.get_engine()
@@ -117,4 +118,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    date()

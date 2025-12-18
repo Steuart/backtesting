@@ -18,6 +18,23 @@ def list_fund_adj(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
     df = pd.read_sql(text(query), engine, params=params)
     return df
 
+def list_by_limit(symbol: str, end_date: str, limit: int = 500) -> pd.DataFrame:
+    engine = get_engine()
+    query = """
+        SELECT * FROM fund_adj
+        WHERE symbol = :symbol
+        AND time <= :end_date
+        ORDER BY time ASC
+        LIMIT :limit
+    """
+    params = {
+        'symbol': symbol,
+        'end_date': end_date,
+        'limit': limit
+    }
+    df = pd.read_sql(text(query), engine, params=params)
+    return df
+
 def get_latest_adj(symbol: str) -> float:
     engine = get_engine()
     query = """

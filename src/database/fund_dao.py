@@ -1,5 +1,5 @@
 import pandas as pd
-from sqlalchemy import create_engine,text
+from sqlalchemy import text
 from database.db_pool import get_engine
 
 def list_fund(limit: int = 50) -> pd.DataFrame:

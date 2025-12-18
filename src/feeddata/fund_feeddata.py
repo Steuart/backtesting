@@ -5,22 +5,41 @@ from database import fund_adj_dao
 from database import fund_market_dao
 
 class FundPandasData(bt.feeds.PandasData):
-    lines = ('pct_chg',)
+    lines = ('pct_chg','volume', 'interest')
     params = (
         ('pct_chg', 'pct_chg'),
+        ('volume', 'volume'),
+        ('interest', 'interest'),
     )
 
-def load_data(symbol: str, start: str, end: str, time_frame: str, adjust_type: str = 'forward') -> pd.DataFrame:
-    fund_markets = fund_market_dao.list_fund_market(
+def load_data(sysbol: str, end: str, bars:int, time_frame:str) -> pd.DateFrame:
+    fund_markets = fund_market_dao.list_by_limit(
         symbol=symbol,
-        start_date=start,
         end_date=end,
+        limit=bars,
         time_frame=time_frame
     )
-    fund_adjs = fund_adj_dao.list_fund_adj(
+    fund_markets = fund_markets.sort_values('time').set_index('time')
+    fund_markets['open'] = fund_markets['open']
+    fund_markets['high'] = fund_markets['high']
+    fund_markets['low'] = fund_markets['low']
+    fund_markets['close'] = fund_markets['close']
+    fund_markets['volume'] = fund_markets['volume']
+    fund_markets['pct_chg'] = fund_markets['pct_chg']
+    fund_markets['interest'] = fund_markets['interest']
+    return fund_markets
+
+def load_data_with_adj(symbol: str, end: str, bars: int, time_frame: str, adjust_type: str = 'forward') -> pd.DataFrame:
+    fund_markets = fund_market_dao.list_by_limit(
         symbol=symbol,
-        start_date=start,
-        end_date=end
+        end_date=end,
+        limit=bars,
+        time_frame=time_frame
+    )
+    fund_adjs = fund_adj_dao.list_by_limit(
+        symbol=symbol,
+        end_date=end,
+        limit=bars
     )
     latest_adj = 1.0
     fund_adj_map = fund_adjs.set_index('time')['adj_factor'].to_dict()

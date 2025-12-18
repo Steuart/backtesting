@@ -21,6 +21,26 @@ def list_fund_market(symbol: str, start_date: str, end_date: str, time_frame: st
     df = pd.read_sql(text(query), engine, params=params)
     return df
 
+def list_by_limit(symbol: str, end_date: str, limit: int = 500, time_frame: str = '1d') -> pd.DataFrame:
+    engine = get_engine()
+    query = """
+        SELECT * FROM fund_market
+        WHERE symbol = :symbol
+        AND time <= :end_date
+        AND time_frame = :time_frame
+        ORDER BY time ASC
+        LIMIT :limit
+    """
+    params = {
+        'symbol': symbol,
+        'start_date': start_date,
+        'end_date': end_date,
+        'time_frame': time_frame,
+        'limit': limit
+    }
+    df = pd.read_sql(text(query), engine, params=params)
+    return df
+
 def list_pct_chg(symbol:str, start_date: str, end_date: str, time_frame: str = '1d') -> pd.DataFrame:
     engine = get_engine()
     base = """

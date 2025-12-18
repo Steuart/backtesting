@@ -4,47 +4,34 @@ from database import fund_dao
 from observer.equity_observer import EquityObserver
 from commission.fund_commission import FundCommission
 import pandas as pd
-from database.fund_market_dao import compute_volatility_dict, compute_correlation_matrix
 from strategy.relative_strength_strategy import RelativeStrengthStrategy
 
-def pivot_pct_chg(df: pd.DataFrame, symbols=None) -> pd.DataFrame:
-    if df.empty:
-        return pd.DataFrame()
-    df['time'] = pd.to_datetime(df['time'])
-    if symbols is not None:
-        df = df[df['symbol'].isin(list(symbols))]
-    return df.pivot(index='time', columns='symbol', values='pct_chg').dropna(how='all')
-
 def run_backtest():
-    day_count=500
+    bars=500
+    cash = 1000000.0
     end = pd.Timestamp.now()
-    start = (end - pd.DateOffset(days=day_count)).strftime('%Y-%m-%d')
     funds = fund_dao.list_fund(10000)
-    # 创建Cerebro引擎
     cerebro = bt.Cerebro()
     
     for _,fund in funds.iterrows():
         code = fund['symbol']
         data = fund_feeddata.load_data(
                 symbol=code,
-                start=start,
                 end=end.strftime('%Y-%m-%d'),
+                bars=bars,
                 time_frame='1d'
             )
         rows = len(data)
-        if (rows<365):
+        if (rows<bars):
             continue
-        # 添加数据到Cerebro
         print(f"load {rows} rows for {code}")
         cerebro.adddata(data = fund_feeddata.FundPandasData(dataname=data), name=code)
     cerebro.addstrategy(RelativeStrengthStrategy)
     
-    cerebro.broker.setcash(100000.0)
+    cerebro.broker.setcash(cash)
     cerebro.broker.set_checksubmit(True)
     cerebro.broker.set_shortcash(False)
-    # 使用默认佣金规则应用到所有数据，不指定 name
     cerebro.broker.addcommissioninfo(FundCommission())
-    
     cerebro.addobserver(EquityObserver)
 
 
@@ -54,12 +41,10 @@ def run_backtest():
     
     print(f'begin: {cerebro.broker.getvalue():.2f}')
     
-    # 运行回测
     results = cerebro.run()
     
     print(f'end: {cerebro.broker.getvalue():.2f}')
     
-    # 获取分析结果
     strat = results[0]
     
     print('\n=== result ===')
