@@ -8,6 +8,8 @@ class LearnStrategy(bt.Strategy):
     )
     def __init__(self):
         self.log(f"type:{type(self.data.close[0])}")
+        for datetime in self.data.datetime:
+            self.log(f"datetime: {bt.num2date(datetime)}")
         self.data_map = {}
         for _, data in enumerate(self.datas):
             self.data_map[data._name] = data

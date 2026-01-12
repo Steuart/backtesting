@@ -13,68 +13,45 @@ class RelativeStrengthStrategy(bt.Strategy):
     )
 
     def __init__(self):
-        self.stocks = []
-        self.top_stocks = []
-        self.ordering_num = 0
-        self.rebalance_dates = self.get_rebalance_dates()
-        self.momentums = None
-
-    def get_rebalance_dates(self):
-        dates = set()
+        self.holding_stocks = []
+        self.for_buy = []
+        self.for_sell = []
+        self.rebalance_dates = self.data.datetime[::self.p.rebalance_period]
+        self.data_map = {}
+        self.atr = {}
         for data in self.datas:
-            for line in data.lines.datetime.array:
-                dates.add(bt.num2date(line))
-        sorted_dates = sorted(list(dates))
-        rebalance_dates = sorted_dates[::self.p.rebalance_period]
-        result = [d.date() for d in rebalance_dates]
-        return result
+            self.atr[data] = bt.indicators.ATR(data, period=self.p.rebalance_period)
+            self.data_map[data._name] = data
 
     def next(self):
-        if self.ordering_num > 0:
-            return
-        total_posizion = 0
-        for stock in self.stocks:
-            total_posizion += self.getposition(stock).size
-        if total_posizion == 0:
-            self.firstbuy()
-        else:
-            self.rebalance()
+        if len(self.for_buy) > 0:
+            self.buy_stocks()
+        if len(self.for_sell) > 0:
+            self.sell_stocks()
+        current_date = self.data.datetime[0]
+        if current_date in self.rebalance_dates or len(self.holding_stocks) == 0:
+            top_stocks = self.top_stocks()
+            self.for_buy = [x for x in top_stocks if x not in self.holding_stocks]
+            self.for_sell = [x for x in self.holding_stocks if x not in top_stocks]
 
-    def firstbuy(self):
-        self.top_stocks = self.select_candidates()
-        budget = self.broker.get_cash()/len(self.top_stocks)*0.9
-        self.log(f"first buy, budget:{self.broker.get_cash()}, avg budget: {budget}")
-        for stock in self.top_stocks:
+    def buy_stocks(self):
+        if len(self.for_buy) == 0:
+            return
+        budget = self.broker.get_cash()/len(self.for_buy)*self.p.corr_threshold
+        for stock_name in self.for_buy:
+            stock = self.data_map[stock_name]
             size = int(budget / stock.close[0])
             if size > 0:
-                self.stocks.append(stock)
                 self.buy(data=stock, size=size)
-                self.ordering_num +=1
 
-    def rebalance(self):
-        current_date = self.datetime.date()
-        if current_date in self.rebalance_dates:
-            self.top_stocks = self.select_candidates()
-            tmp_stocks = self.stocks
-            for stock in self.stocks:
-                if self.getposition(stock).size > 0 and stock not in self.top_stocks:
-                    self.log(f'sell signal: {stock._name}')
-                    self.ordering_num +=1
-                    self.close(data=stock)
-                    tmp_stocks.remove(stock)
-            self.stocks = tmp_stocks
-        
-        if (self.stocks == self.top_stocks or self.ordering_num > 0):
+    def sell_stocks(self):
+        if len(self.for_sell) == 0:
             return
-        budget = self.broker.get_cash()/(self.p.num_top-len(self.stocks)) * 0.8
-        for stock in self.top_stocks:
-            if self.getposition(stock).size == 0:
-                size = int(budget / stock.close[0])
-                if size > 0:
-                    self.buy(data=stock, size=size)
-                    self.ordering_num +=1
+        for stock_name in self.for_sell:
+            stock = self.data_map[stock_name]
+            self.close(data=stock)
     
-    def select_candidates(self):
+    def top_stocks(self):
         eligible = []
         returns_map = {}
         for d in self.datas:
@@ -144,14 +121,21 @@ class RelativeStrengthStrategy(bt.Strategy):
 
         if order.status in [order.Completed]:
             if order.isbuy():
+                self.for_buy.remove(order.data._name)
+                self.holding_stocks.append(order.data._name)
                 self.log(f'buy: {order.data._name}, price {order.executed.price:.2f}, '
                          f'size {order.executed.size}, comm {order.executed.comm:.2f}')
             elif order.issell():
+                self.for_sell.remove(order.data._name)
+                self.holding_stocks.remove(order.data._name)
                 self.log(f'sell: {order.data._name}, price {order.executed.price:.2f}, '
                          f'size {order.executed.size}, comm {order.executed.comm:.2f}')
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
+            if order.isbuy():
+                self.for_buy.remove(order.data._name)
+            elif order.issell():
+                self.for_sell.remove(order.data._name)
             self.log(f'order problem: {order.p.data._name}, isBuy:{order.isbuy()}')
-        self.ordering_num -= 1
 
     def notify_trade(self, trade):
         if not trade.isclosed:
