@@ -10,6 +10,7 @@ class RelativeStrengthStrategy(bt.Strategy):
         ('vol_threshold', 2.0),
         ('corr_threshold', 0.8),
         ('printlog', True),
+        ('stop_loss_pct', 2),
     )
 
     def __init__(self):
@@ -28,6 +29,9 @@ class RelativeStrengthStrategy(bt.Strategy):
             self.buy_stocks()
         if len(self.for_sell) > 0:
             self.sell_stocks()
+        # 止损
+        self.stop_loss()
+        # 调仓
         current_date = self.data.datetime[0]
         if current_date in self.rebalance_dates or len(self.holding_stocks) == 0:
             top_stocks = self.top_stocks()
@@ -51,6 +55,13 @@ class RelativeStrengthStrategy(bt.Strategy):
             stock = self.data_map[stock_name]
             self.close(data=stock)
     
+    def stop_loss(self):
+        for stock_name in self.holding_stocks:
+            stock = self.data_map[stock_name]
+            atr = self.atr[stock][0]
+            if stock.close[-1] - stock.close[0] >= self.p.stop_loss_pct * atr:
+                self.close(data=stock)
+
     def top_stocks(self):
         eligible = []
         returns_map = {}
