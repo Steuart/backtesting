@@ -25,10 +25,11 @@ class RelativeStrengthStrategy(bt.Strategy):
             self.data_map[data._name] = data
 
     def next(self):
-        if len(self.for_buy) > 0:
-            self.buy_stocks()
+        # 执行订单
         if len(self.for_sell) > 0:
             self.sell_stocks()
+        elif len(self.for_buy) > 0:
+            self.buy_stocks()
         # 止损
         self.stop_loss()
         # 调仓
