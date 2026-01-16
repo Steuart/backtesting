@@ -96,7 +96,7 @@ class RelativeStrengthStrategy(bt.Strategy):
             groups.append(comp)
         return groups
 
-    def top_stocks(self):
+    def filter_candidates(self):
         eligible = []
         returns_map = {}
         for d in self.datas:
@@ -115,6 +115,10 @@ class RelativeStrengthStrategy(bt.Strategy):
                 
                 eligible.append((d, vol, total_return))
                 returns_map[d._name] = np.array(rets, dtype=float)
+        return eligible, returns_map
+
+    def top_stocks(self):
+        eligible, returns_map = self.filter_candidates()
         if not eligible:
             return []
         names = [d._name for d, _, _ in eligible]
