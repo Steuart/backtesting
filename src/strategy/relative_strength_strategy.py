@@ -6,7 +6,7 @@ class RelativeStrengthStrategy(bt.Strategy):
     params = (
         ('rebalance_period', 10),
         ('num_top', 5),
-        ('lookback_days', 60),
+        ('correlation_period', 60),
         ('vol_threshold', 2.0),
         ('corr_threshold', 0.8),
         ('printlog', True),
@@ -57,41 +57,23 @@ class RelativeStrengthStrategy(bt.Strategy):
             self.close(data=stock)
     
     def stop_loss(self):
+        if len(self.holding_stocks) == 0:
+            return
         for stock_name in self.holding_stocks:
             stock = self.data_map[stock_name]
             atr = self.atr[stock][0]
             if stock.close[-1] - stock.close[0] >= self.p.stop_loss_pct * atr:
                 self.close(data=stock)
 
-    def top_stocks(self):
-        eligible = []
-        returns_map = {}
-        for d in self.datas:
-            if len(d) < self.p.lookback_days:
-                continue
-            
-            rets = list(d.pct_chg.get(ago=0, size=self.p.lookback_days))
-            if len(rets) < self.p.lookback_days:
-                continue
-                
-            vol = float(np.std(rets))
-            if vol <= self.p.vol_threshold:
-                # Calculate total return using close prices
-                start_close = d.close[-self.p.lookback_days + 1]
-                end_close = d.close[0]
-                total_return = (end_close/start_close - 1.0) * 100.0 if start_close != 0 else 0.0
-                
-                eligible.append((d, vol, total_return))
-                returns_map[d._name] = np.array(rets, dtype=float)
-        if not eligible:
+    def correlation_groups(self, names, returns_map):
+        if not names:
             return []
-        names = [d._name for d, _, _ in eligible]
         matrix = np.vstack([returns_map[n] for n in names])
         corr = np.corrcoef(matrix)
         n = len(names)
         adj = {names[i]: set() for i in range(n)}
         for i in range(n):
-            for j in range(i+1, n):
+            for j in range(i + 1, n):
                 if corr[i, j] > self.p.corr_threshold:
                     adj[names[i]].add(names[j])
                     adj[names[j]].add(names[i])
@@ -112,6 +94,31 @@ class RelativeStrengthStrategy(bt.Strategy):
                     if nei not in visited:
                         stack.append(nei)
             groups.append(comp)
+        return groups
+
+    def top_stocks(self):
+        eligible = []
+        returns_map = {}
+        for d in self.datas:
+            if len(d) < self.p.correlation_period:
+                continue
+
+            rets = list(d.pct_chg.get(ago=0, size=self.p.correlation_period))
+            if len(rets) < self.p.correlation_period:
+                continue
+
+            vol = float(self.atr[d][0])
+            if vol <= self.p.vol_threshold:
+                start_close = d.close[-self.p.correlation_period + 1]
+                end_close = d.close[0]
+                total_return = (end_close/start_close - 1.0) * 100.0 if start_close != 0 else 0.0
+                
+                eligible.append((d, vol, total_return))
+                returns_map[d._name] = np.array(rets, dtype=float)
+        if not eligible:
+            return []
+        names = [d._name for d, _, _ in eligible]
+        groups = self.correlation_groups(names, returns_map)
         by_name = {d._name: (d, vol, ret) for d, vol, ret in eligible}
         winners = []
         for comp in groups:
